@@ -9,6 +9,7 @@
 *.o
 *.a
 *.so
+zen
 
 # Folders
 _obj
