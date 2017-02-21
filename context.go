@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"net/http"
+	"net/url"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -34,7 +35,10 @@ func (c *Context) ParseValidForm(input interface{}) error {
 	if err := c.req.ParseForm(); err != nil {
 		return err
 	}
+	return parseValidForm(input, c.req.Form)
+}
 
+func parseValidForm(input interface{}, form url.Values) error {
 	inputValue := reflect.ValueOf(input)
 	inputType := inputValue.Type()
 
@@ -44,7 +48,7 @@ func (c *Context) ParseValidForm(input interface{}) error {
 		validate := tag.Get(validTagName)
 		validateMsg := tag.Get(validMsgName)
 		field := inputValue.Field(i)
-		formValue := c.req.Form.Get(formName)
+		formValue := form.Get(formName)
 
 		// validate form with regex
 		if err := valid(formValue, validate, validateMsg); err != nil {
