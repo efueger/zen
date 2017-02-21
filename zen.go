@@ -15,6 +15,7 @@ const (
 type (
 	// Server struct
 	Server struct {
+		http.Server
 		contextPool sync.Pool
 		routes      map[string]HandlerFunc
 	}
@@ -35,12 +36,16 @@ func NewServer() *Server {
 // Run server
 func (s *Server) Run(addr string) error {
 	log.Println("start zen on", addr)
-	return http.ListenAndServe(addr, s)
+	s.Addr = addr
+	s.Handler = s
+	return s.ListenAndServe()
 }
 
 // RunTLS Run server with tls
 func (s *Server) RunTLS(addr string, certFile string, keyFile string) error {
-	return http.ListenAndServeTLS(addr, certFile, keyFile, s)
+	s.Addr = addr
+	s.Handler = s
+	return s.ListenAndServeTLS(certFile, keyFile)
 }
 
 func (s *Server) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
