@@ -39,7 +39,7 @@ func (c *Context) ParseValidForm(input interface{}) error {
 }
 
 func parseValidForm(input interface{}, form url.Values) error {
-	inputValue := reflect.ValueOf(input)
+	inputValue := reflect.ValueOf(input).Elem()
 	inputType := inputValue.Type()
 
 	for i := 0; i < inputValue.NumField(); i++ {
@@ -56,7 +56,6 @@ func parseValidForm(input interface{}, form url.Values) error {
 		}
 		// scan form string value into field
 		if err := scan(field, formValue); err != nil {
-
 			return err
 		}
 
@@ -109,6 +108,9 @@ func scan(v reflect.Value, s string) error {
 }
 
 func valid(s string, validate, msg string) error {
+	if validate == "" {
+		return nil
+	}
 	rxp, err := regexp.Compile(validate)
 	if err != nil {
 		return err
