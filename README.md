@@ -8,7 +8,7 @@
 func main() {
 	server := zen.NewServer()
 
-	server.Route("POST", "/test", handler)
+	server.Post("/test", handler)
 	if err := server.Run(":9999"); err != nil {
 		log.Println(err)
 	}
@@ -27,10 +27,10 @@ func handler(c *zen.Context) {
 	var input Inputs
 
 	if err := c.ParseValidForm(&input); err != nil {
-		c.JSON(200, map[string]string{"err": err.Error()})
+		c.JSON(map[string]string{"err": err.Error()})
 		return
 	}
 	log.Println(input)
-	c.JSON(200, input)
+	c.JSON(input)
 }
 ```
