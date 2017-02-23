@@ -2,6 +2,7 @@ package zen
 
 import (
 	"net/http"
+	"net/http/pprof"
 	"net/url"
 	"path/filepath"
 	"regexp"
@@ -77,6 +78,11 @@ func (s *Server) Static(pattern string, dir string) {
 		path = filepath.Join(dir, path)
 		http.ServeFile(c.rw, c.req, path)
 	})
+}
+
+// Pprof serve golang's pprof tool
+func (s *Server) Pprof(pattern string) {
+	s.Get(pattern, wrapHandler(pprof.Index))
 }
 
 // AddRoute : Adds a new Route to the Handler
