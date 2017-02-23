@@ -83,9 +83,13 @@ func handler(c *zen.Context) {
 	}
 ```
 
-### Todo
+## Todo
 
 - [ ] Group route
 - [ ] Middleware for subpath
 - [ ] Grace restart base on go 1.8
 - [ ] Optimize performance
+
+## License
+
+zen is published under MIT license
