@@ -18,16 +18,22 @@ const (
 	validMsgName = "msg"
 )
 
+//commonly used mime-types
+const (
+	applicationJSON = "application/json"
+	applicationXML  = "application/xml"
+	textXML         = "text/xml"
+	applicationASN1 = "application/asn1"
+
+	contentType = "Content-Type"
+)
+
 type (
 	// Context warps request and response writer
 	Context struct {
 		req *http.Request
 		rw  http.ResponseWriter
 	}
-)
-
-var (
-	errUnsupportedFromType = errors.New("unsupported form type")
 )
 
 // ParseValidForm will parse request's form and map into a interface{} value
@@ -101,8 +107,6 @@ func scan(v reflect.Value, s string) error {
 		}
 		v.SetFloat(f)
 
-	default:
-		return errUnsupportedFromType
 	}
 	return nil
 }
@@ -123,11 +127,10 @@ func valid(s string, validate, msg string) error {
 	return nil
 }
 
-// JSON : write json data to http response writer
-func (c *Context) JSON(code int, i interface{}) (err error) {
+// JSON : write json data to http response writer, with status code 200
+func (c *Context) JSON(i interface{}) (err error) {
 	// write http status code
-	c.rw.Header().Add("content-type", "application/json")
-	c.rw.WriteHeader(code)
+	c.Head(contentType, applicationJSON)
 
 	// Encode json data to rw
 	err = json.NewEncoder(c.rw).Encode(i)
@@ -136,11 +139,10 @@ func (c *Context) JSON(code int, i interface{}) (err error) {
 	return
 }
 
-// XML : write xml data to http response writer
-func (c *Context) XML(code int, i interface{}) (err error) {
+// XML : write xml data to http response writer, with status code 200
+func (c *Context) XML(i interface{}) (err error) {
 	// write http status code
-	c.rw.Header().Add("content-type", "application/xml")
-	c.rw.WriteHeader(code)
+	c.Head(contentType, applicationXML)
 
 	// Encode xml data to rw
 	err = xml.NewEncoder(c.rw).Encode(i)
@@ -149,11 +151,10 @@ func (c *Context) XML(code int, i interface{}) (err error) {
 	return
 }
 
-// ASN1 : write asn1 data to http response writer
-func (c *Context) ASN1(code int, i interface{}) (err error) {
+// ASN1 : write asn1 data to http response writer, with status code 200
+func (c *Context) ASN1(i interface{}) (err error) {
 	// write http status code
-	c.rw.Header().Add("content-type", "application/asn1")
-	c.rw.WriteHeader(code)
+	c.Head(contentType, applicationASN1)
 
 	// Encode asn1 data to rw
 	bts, err := asn1.Marshal(i)
@@ -163,4 +164,14 @@ func (c *Context) ASN1(code int, i interface{}) (err error) {
 	//return
 	_, err = c.rw.Write(bts)
 	return
+}
+
+// Status set response's status code
+func (c *Context) Status(code int) {
+	c.rw.WriteHeader(code)
+}
+
+// Head set header
+func (c *Context) Head(k, v string) {
+	c.rw.Header().Add(k, v)
 }

@@ -3,7 +3,6 @@ package zen
 import (
 	"log"
 	"net/http"
-	"strings"
 	"sync"
 )
 
@@ -16,8 +15,11 @@ type (
 	// Server struct
 	Server struct {
 		http.Server
-		contextPool sync.Pool
-		routes      map[string]HandlerFunc
+		routes          []*route
+		filters         []HandlerFunc
+		contextPool     sync.Pool
+		NotFoundHandler HandlerFunc
+		PanicHandler    func(*Context, interface{})
 	}
 )
 
@@ -28,7 +30,6 @@ func NewServer() *Server {
 		c := Context{}
 		return &c
 	}
-	s.routes = map[string]HandlerFunc{}
 
 	return s
 }
@@ -46,22 +47,4 @@ func (s *Server) RunTLS(addr string, certFile string, keyFile string) error {
 	s.Addr = addr
 	s.Handler = s
 	return s.ListenAndServeTLS(certFile, keyFile)
-}
-
-func (s *Server) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	c := s.contextPool.Get().(*Context)
-	c.req = req
-	c.rw = rw
-
-	s.serveHTTPRequest(c)
-}
-
-func (s *Server) serveHTTPRequest(c *Context) {
-	handler, ok := s.routes[c.req.URL.RequestURI()+"::"+strings.ToUpper(c.req.Method)]
-	if !ok {
-		c.rw.WriteHeader(http.StatusNotFound)
-		return
-	}
-
-	handler(c)
 }
