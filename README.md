@@ -8,11 +8,21 @@
 func main() {
 	server := zen.NewServer()
 
-	server.Post("/test", handler)
 	if err := server.Run(":9999"); err != nil {
 		log.Println(err)
 	}
 }
+```
+
+### Add a route
+
+```go
+	server := zen.NewServer()
+	server.Post("/test", handler)
+	server.Get("/test",handler)
+	if err := server.Run(":9999"); err != nil {
+	log.Println(err)
+	}
 ```
 
 ### Parse and validate input
@@ -34,3 +44,40 @@ func handler(c *zen.Context) {
 	c.JSON(input)
 }
 ```
+
+### Use middleware
+
+```go
+	server := zen.NewServer()
+	server.Filter(filter)
+	if err := server.Run(":9999"); err != nil {
+	log.Println(err)
+	}
+```
+
+### Hanndle panic
+
+```go
+	server := zen.NewServer()
+	server.PanicHandler = handler
+	if err := server.Run(":9999"); err != nil {
+	log.Println(err)
+	}
+```
+
+### Hanndle 404
+
+```go
+	server := zen.NewServer()
+	server.NotFoundHandler = handler
+	if err := server.Run(":9999"); err != nil {
+	log.Println(err)
+	}
+```
+
+### Todo
+
+- [ ] Group route
+- [ ] Middleware for subpath
+- [ ] Grace restart base on go 1.8
+- [ ] Optimize performance
