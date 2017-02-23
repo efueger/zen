@@ -85,10 +85,9 @@ func handler(c *zen.Context) {
 
 ## Todo
 
-- [ ] Group route
+- [ ] Rewrite route match
 - [ ] Middleware for subpath
 - [ ] Grace restart base on go 1.8
-- [ ] Optimize performance
 
 ## License
 
