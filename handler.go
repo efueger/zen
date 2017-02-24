@@ -7,6 +7,8 @@ import (
 type (
 	// HandlerFunc is a type alias for handler
 	HandlerFunc func(*Context)
+	// PanicHandler handle panic
+	PanicHandler func(*Context, interface{})
 )
 
 func wrapHandler(h http.HandlerFunc) HandlerFunc {

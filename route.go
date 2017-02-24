@@ -1,9 +1,9 @@
 package zen
 
 import (
+	"log"
 	"net/http"
 	"net/http/pprof"
-	"net/url"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -31,69 +31,42 @@ const (
 )
 
 type route struct {
-	method  string
-	regex   *regexp.Regexp
-	params  map[int]string
+	method string
+
+	pattern string
+
+	namedSubRoutes map[string]*route
+	regexSubRoutes map[string]*route
+	regex          *regexp.Regexp
+	isExplicit     bool
+
 	handler HandlerFunc
 }
 
 // Route set handler for given pattern and method
 func (s *Server) Route(method string, pattern string, handler HandlerFunc) {
-	s.AddRoute(method, pattern, handler)
-}
 
-// Get adds a new Route for GET requests.
-func (s *Server) Get(pattern string, handler HandlerFunc) {
-	s.AddRoute(GET, pattern, handler)
-}
+	// add a named route
+	if strings.Index(pattern, ":") == -1 {
+		route := &route{
+			method:         method,
+			pattern:        pattern,
+			isExplicit:     true,
+			namedSubRoutes: map[string]*route{},
+			regexSubRoutes: map[string]*route{},
+			handler:        handler,
+		}
+		k := strings.Join([]string{method, pattern}, "||")
+		s.route.namedSubRoutes[k] = route
+		return
+	}
 
-// Put adds a new Route for PUT requests.
-func (s *Server) Put(pattern string, handler HandlerFunc) {
-	s.AddRoute(PUT, pattern, handler)
-}
-
-// Del adds a new Route for DELETE requests.
-func (s *Server) Del(pattern string, handler HandlerFunc) {
-	s.AddRoute(DELETE, pattern, handler)
-}
-
-// Patch adds a new Route for PATCH requests.
-func (s *Server) Patch(pattern string, handler HandlerFunc) {
-	s.AddRoute(PATCH, pattern, handler)
-}
-
-// Post adds a new Route for POST requests.
-func (s *Server) Post(pattern string, handler HandlerFunc) {
-	s.AddRoute(POST, pattern, handler)
-}
-
-// Static :Adds a new Route for Static http requests. Serves
-// static files from the specified directory
-func (s *Server) Static(pattern string, dir string) {
-	//append a regex to the param to match everything
-	// that comes after the prefix
-	pattern = pattern + "(.+)"
-	s.AddRoute(GET, pattern, func(c *Context) {
-		path := filepath.Clean(c.req.URL.Path)
-		path = filepath.Join(dir, path)
-		http.ServeFile(c.rw, c.req, path)
-	})
-}
-
-// Pprof serve golang's pprof tool
-func (s *Server) Pprof(pattern string) {
-	s.Get(pattern, wrapHandler(pprof.Index))
-}
-
-// AddRoute : Adds a new Route to the Handler
-func (s *Server) AddRoute(method string, pattern string, handler HandlerFunc) {
-
+	// create tree route
 	//split the url into sections
-	parts := strings.Split(pattern, "/")
+	parts := strings.Split(strings.TrimSuffix(strings.TrimPrefix(pattern, "/"), "/"), "/")
 
 	//find params that start with ":"
 	//replace with regular expressions
-	j := 0
 	params := make(map[int]string)
 	for i, part := range parts {
 		if strings.HasPrefix(part, ":") {
@@ -104,30 +77,89 @@ func (s *Server) AddRoute(method string, pattern string, handler HandlerFunc) {
 				expr = part[index:]
 				part = part[:index]
 			}
-			params[j] = part
+			params[i] = part
 			parts[i] = expr
-			j++
 		}
 	}
 
-	//recreate the url pattern, with parameters replaced
-	//by regular expressions. then compile the regex
-	pattern = strings.Join(parts, "/")
-	regex, regexErr := regexp.Compile(pattern)
-	if regexErr != nil {
-		// fail earlier
-		panic(regexErr)
+	s.route.generateRoute(method, parts, params, 0, handler)
+}
+
+// Get adds a new Route for GET requests.
+func (s *Server) Get(pattern string, handler HandlerFunc) {
+	s.Route(GET, pattern, handler)
+}
+
+// Put adds a new Route for PUT requests.
+func (s *Server) Put(pattern string, handler HandlerFunc) {
+	s.Route(PUT, pattern, handler)
+}
+
+// Del adds a new Route for DELETE requests.
+func (s *Server) Del(pattern string, handler HandlerFunc) {
+	s.Route(DELETE, pattern, handler)
+}
+
+// Patch adds a new Route for PATCH requests.
+func (s *Server) Patch(pattern string, handler HandlerFunc) {
+	s.Route(PATCH, pattern, handler)
+}
+
+// Post adds a new Route for POST requests.
+func (s *Server) Post(pattern string, handler HandlerFunc) {
+	s.Route(POST, pattern, handler)
+}
+
+// Static :Adds a new Route for Static http requests. Serves
+// static files from the specified directory
+func (s *Server) Static(pattern string, dir string) {
+	//append a regex to the param to match everything
+	// that comes after the prefix
+	pattern = pattern + "(.+)"
+	s.Route(GET, pattern, func(c *Context) {
+		path := filepath.Clean(c.req.URL.Path)
+		path = filepath.Join(dir, path)
+		http.ServeFile(c.rw, c.req, path)
+	})
+}
+
+// PProf serve golang's pprof tool
+func (s *Server) PProf(pattern string) {
+	s.Get(pattern, wrapHandler(pprof.Index))
+}
+
+// HandleNotFound set server's notFoundHandler
+func (s *Server) HandleNotFound(handler HandlerFunc) {
+	s.notFoundHandler = handler
+}
+
+// HandlePanic set server's panicHandler
+func (s *Server) HandlePanic(handler PanicHandler) {
+	s.panicHandler = handler
+}
+
+// handlePanic call server's panic handler
+func (s *Server) handlePanic(c *Context) {
+
+	if err := recover(); err != nil {
+		if s.panicHandler != nil {
+			s.panicHandler(c, err)
+		} else {
+			log.Printf("%+v", err)
+			http.Error(c.rw, "internal server error", http.StatusInternalServerError)
+		}
+	}
+}
+
+// handleNotFound call server's not found handler
+func (s *Server) handleNotFound(c *Context) {
+
+	if s.notFoundHandler != nil {
+		s.notFoundHandler(c)
+		return
 	}
 
-	//now create the Route
-	route := &route{}
-	route.method = method
-	route.regex = regex
-	route.handler = handler
-	route.params = params
-
-	//and finally append to the list of Routes
-	s.routes = append(s.routes, route)
+	http.NotFound(c.rw, c.req)
 }
 
 // Filter adds the middleware filter.
@@ -135,87 +167,102 @@ func (s *Server) Filter(filter HandlerFunc) {
 	s.filters = append(s.filters, filter)
 }
 
-// FilterParam adds the middleware filter if the REST URL parameter exists.
-func (s *Server) FilterParam(param string, filter HandlerFunc) {
-	if !strings.HasPrefix(param, ":") {
-		param = ":" + param
-	}
-
-	s.Filter(func(c *Context) {
-		p := c.req.URL.Query().Get(param)
-		if len(p) > 0 {
-			filter(c)
-		}
-	})
-}
-
 // Required by http.Handler interface. This method is invoked by the
 // http server and will handle all page routing
 func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+	w := &responseWriter{writer: rw}
+	c := s.getContext(w, r)
 
-	requestPath := r.URL.Path
+	defer s.handlePanic(c)
 
-	c := s.contextPool.Get().(*Context)
-	c.req = r
-	c.rw = rw
-
-	defer func() {
-		if e := recover(); e != nil {
-			if s.PanicHandler != nil {
-				s.PanicHandler(c, e)
-			} else {
-				http.Error(rw, "internal server error", http.StatusInternalServerError)
+	route := s.routeMatch(r.Method, r.URL.Path)
+	if route != nil && route.handler != nil {
+		for _, f := range s.filters {
+			f(c)
+			if w.started {
+				return
 			}
 		}
-	}()
-
-	//find a matching Route
-	for _, route := range s.routes {
-
-		//if the methods don't match, skip this handler
-		//i.e if request.Method is 'PUT' Route.Method must be 'PUT'
-		if r.Method != route.method {
-			continue
-		}
-
-		//check if Route pattern matches url
-		if !route.regex.MatchString(requestPath) {
-			continue
-		}
-
-		//get submatches (params)
-		matches := route.regex.FindStringSubmatch(requestPath)
-
-		//double check that the Route matches the URL pattern.
-		if len(matches[0]) != len(requestPath) {
-			continue
-		}
-
-		if len(route.params) > 0 {
-			//add url parameters to the query param map
-			values := r.URL.Query()
-			for i, match := range matches[1:] {
-				values.Add(route.params[i], match)
-			}
-
-			//reassemble query params and add to RawQuery
-			r.URL.RawQuery = url.Values(values).Encode() + "&" + r.URL.RawQuery
-			//r.URL.RawQuery = url.Values(values).Encode()
-		}
-
-		//execute middleware filters
-		for _, filter := range s.filters {
-			filter(c)
-		}
-
-		//Invoke the request handler
 		route.handler(c)
 		return
 	}
+	s.handleNotFound(c)
+}
 
-	if s.NotFoundHandler != nil {
-		s.NotFoundHandler(c)
-	} else {
-		http.NotFound(rw, r)
+func (s *Server) routeMatch(method, pattern string) *route {
+	k := generateKey(method, pattern)
+	if r, ok := s.route.namedSubRoutes[k]; ok {
+		return r
 	}
+	pattern = strings.TrimSuffix(strings.TrimPrefix(pattern, "/"), "/")
+
+	parts := strings.Split(pattern, "/")
+	return s.route.subRouteMatch(method, parts, 0)
+}
+
+func (r *route) subRouteMatch(method string, parts []string, index int) *route {
+	if index >= len(parts) {
+		return r
+	}
+
+	pattern := parts[index]
+	k := generateKey(method, pattern)
+
+	if sub, ok := r.namedSubRoutes[k]; ok {
+		return sub.subRouteMatch(method, parts, index+1)
+	}
+
+	for _, v := range r.regexSubRoutes {
+		if v.method == method && v.regex.MatchString(pattern) {
+			return v.subRouteMatch(method, parts, index+1)
+		}
+	}
+	return nil
+
+}
+
+func (r *route) generateRoute(method string, parts []string, params map[int]string, index int, handler HandlerFunc) {
+	if index >= len(parts) {
+		r.handler = handler
+		return
+	}
+
+	pattern := parts[index]
+	k := generateKey(method, pattern)
+
+	var sub *route
+	if _, ok := params[index]; ok {
+		reg := regexp.MustCompile(pattern)
+		sub = r.regexSubRoutes[k]
+		if sub == nil {
+			sub = &route{
+				method:         method,
+				pattern:        pattern,
+				namedSubRoutes: map[string]*route{},
+				regexSubRoutes: map[string]*route{},
+				isExplicit:     false,
+				regex:          reg,
+			}
+			sub.generateRoute(method, parts, params, index+1, handler)
+			r.regexSubRoutes[k] = sub
+		}
+	} else {
+		sub = r.namedSubRoutes[k]
+		if sub == nil {
+			sub = &route{
+				method:         method,
+				pattern:        pattern,
+				namedSubRoutes: map[string]*route{},
+				regexSubRoutes: map[string]*route{},
+				isExplicit:     true,
+			}
+			sub.generateRoute(method, parts, params, index+1, handler)
+			r.namedSubRoutes[k] = sub
+		}
+	}
+
+}
+
+func generateKey(method, pattern string) string {
+	return strings.Join([]string{method, pattern}, "||")
 }

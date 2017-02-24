@@ -36,6 +36,13 @@ type (
 	}
 )
 
+func (s *Server) getContext(rw http.ResponseWriter, req *http.Request) *Context {
+	c := s.contextPool.Get().(*Context)
+	c.req = req
+	c.rw = rw
+	return c
+}
+
 // ParseValidForm will parse request's form and map into a interface{} value
 func (c *Context) ParseValidForm(input interface{}) error {
 	if err := c.req.ParseForm(); err != nil {

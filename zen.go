@@ -15,22 +15,24 @@ type (
 	// Server struct
 	Server struct {
 		http.Server
-		routes          []*route
-		filters         []HandlerFunc
 		contextPool     sync.Pool
-		NotFoundHandler HandlerFunc
-		PanicHandler    func(*Context, interface{})
+		route           *route
+		notFoundHandler HandlerFunc
+		panicHandler    PanicHandler
+		filters         []HandlerFunc
 	}
 )
 
 // NewServer will create a Server instance and response with a pointer which point to it
 func NewServer() *Server {
-	s := &Server{contextPool: sync.Pool{}}
+	// create root router
+	route := &route{namedSubRoutes: map[string]*route{}, regexSubRoutes: map[string]*route{}}
+
+	s := &Server{route: route, contextPool: sync.Pool{}, filters: []HandlerFunc{}}
 	s.contextPool.New = func() interface{} {
 		c := Context{}
 		return &c
 	}
-
 	return s
 }
 
