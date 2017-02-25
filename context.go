@@ -1,15 +1,18 @@
 package zen
 
 import (
+	"bytes"
 	"encoding/asn1"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
+	"io"
 	"net/http"
 	"net/url"
 	"reflect"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -31,8 +34,10 @@ const (
 type (
 	// Context warps request and response writer
 	Context struct {
-		req *http.Request
-		rw  http.ResponseWriter
+		req    *http.Request
+		rw     http.ResponseWriter
+		params map[string]string
+		parsed bool
 	}
 )
 
@@ -43,15 +48,43 @@ func (s *Server) getContext(rw http.ResponseWriter, req *http.Request) *Context 
 	return c
 }
 
-// ParseValidForm will parse request's form and map into a interface{} value
-func (c *Context) ParseValidForm(input interface{}) error {
+// ParseInput will parse request's form and
+func (c *Context) ParseInput() error {
 	if err := c.req.ParseForm(); err != nil {
 		return err
 	}
-	return parseValidForm(input, c.req.Form)
+	return nil
 }
 
-func parseValidForm(input interface{}, form url.Values) error {
+// Request return http request
+func (c *Context) Request() *http.Request {
+	return c.req
+}
+
+// Form return request form
+func (c *Context) Form() url.Values {
+	return c.req.Form
+}
+
+// Params return request params
+func (c *Context) Params() map[string]string {
+	return c.params
+}
+
+// RequestHeader return request's header
+func (c *Context) RequestHeader() http.Header {
+	return c.req.Header
+}
+
+// ParseValidateForm will parse request's form and map into a interface{} value
+func (c *Context) ParseValidateForm(input interface{}) error {
+	if err := c.req.ParseForm(); err != nil {
+		return err
+	}
+	return c.parseValidateForm(input)
+}
+
+func (c *Context) parseValidateForm(input interface{}) error {
 	inputValue := reflect.ValueOf(input).Elem()
 	inputType := inputValue.Type()
 
@@ -61,7 +94,7 @@ func parseValidForm(input interface{}, form url.Values) error {
 		validate := tag.Get(validTagName)
 		validateMsg := tag.Get(validMsgName)
 		field := inputValue.Field(i)
-		formValue := form.Get(formName)
+		formValue := c.req.Form.Get(formName)
 
 		// validate form with regex
 		if err := valid(formValue, validate, validateMsg); err != nil {
@@ -137,7 +170,7 @@ func valid(s string, validate, msg string) error {
 // JSON : write json data to http response writer, with status code 200
 func (c *Context) JSON(i interface{}) (err error) {
 	// write http status code
-	c.Head(contentType, applicationJSON)
+	c.WriteHeader(contentType, applicationJSON)
 
 	// Encode json data to rw
 	err = json.NewEncoder(c.rw).Encode(i)
@@ -149,7 +182,7 @@ func (c *Context) JSON(i interface{}) (err error) {
 // XML : write xml data to http response writer, with status code 200
 func (c *Context) XML(i interface{}) (err error) {
 	// write http status code
-	c.Head(contentType, applicationXML)
+	c.WriteHeader(contentType, applicationXML)
 
 	// Encode xml data to rw
 	err = xml.NewEncoder(c.rw).Encode(i)
@@ -161,7 +194,7 @@ func (c *Context) XML(i interface{}) (err error) {
 // ASN1 : write asn1 data to http response writer, with status code 200
 func (c *Context) ASN1(i interface{}) (err error) {
 	// write http status code
-	c.Head(contentType, applicationASN1)
+	c.WriteHeader(contentType, applicationASN1)
 
 	// Encode asn1 data to rw
 	bts, err := asn1.Marshal(i)
@@ -173,12 +206,22 @@ func (c *Context) ASN1(i interface{}) (err error) {
 	return
 }
 
-// Status set response's status code
-func (c *Context) Status(code int) {
+// WriteStatus set response's status code
+func (c *Context) WriteStatus(code int) {
 	c.rw.WriteHeader(code)
 }
 
-// Head set header
-func (c *Context) Head(k, v string) {
+// WriteHeader set response header
+func (c *Context) WriteHeader(k, v string) {
 	c.rw.Header().Add(k, v)
+}
+
+// Raw write raw bytes
+func (c *Context) Raw(b []byte) {
+	io.Copy(c.rw, bytes.NewReader(b))
+}
+
+// RawStr write raw string
+func (c *Context) RawStr(s string) {
+	io.Copy(c.rw, strings.NewReader(s))
 }

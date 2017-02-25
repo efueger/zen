@@ -31,16 +31,11 @@ const (
 )
 
 type route struct {
-	method string
-
-	pattern string
-
+	regex          *regexp.Regexp
+	handler        HandlerFunc
 	namedSubRoutes map[string]*route
 	regexSubRoutes map[string]*route
-	regex          *regexp.Regexp
-	isExplicit     bool
-
-	handler HandlerFunc
+	params         map[int]string
 }
 
 // Route set handler for given pattern and method
@@ -49,9 +44,6 @@ func (s *Server) Route(method string, pattern string, handler HandlerFunc) {
 	// add a named route
 	if strings.Index(pattern, ":") == -1 {
 		route := &route{
-			method:         method,
-			pattern:        pattern,
-			isExplicit:     true,
 			namedSubRoutes: map[string]*route{},
 			regexSubRoutes: map[string]*route{},
 			handler:        handler,
@@ -170,6 +162,7 @@ func (s *Server) Filter(filter HandlerFunc) {
 // Required by http.Handler interface. This method is invoked by the
 // http server and will handle all page routing
 func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+	log.Println("zen serveHTTP", r.RequestURI, r.URL.Path)
 	w := &responseWriter{writer: rw}
 	c := s.getContext(w, r)
 
@@ -177,6 +170,7 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	route := s.routeMatch(r.Method, r.URL.Path)
 	if route != nil && route.handler != nil {
+		route.parseParams(c)
 		for _, f := range s.filters {
 			f(c)
 			if w.started {
@@ -184,6 +178,7 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			}
 		}
 		route.handler(c)
+
 		return
 	}
 	s.handleNotFound(c)
@@ -212,8 +207,8 @@ func (r *route) subRouteMatch(method string, parts []string, index int) *route {
 		return sub.subRouteMatch(method, parts, index+1)
 	}
 
-	for _, v := range r.regexSubRoutes {
-		if v.method == method && v.regex.MatchString(pattern) {
+	for k, v := range r.regexSubRoutes {
+		if strings.HasPrefix(k, method) && v.regex.MatchString(pattern) {
 			return v.subRouteMatch(method, parts, index+1)
 		}
 	}
@@ -223,6 +218,7 @@ func (r *route) subRouteMatch(method string, parts []string, index int) *route {
 
 func (r *route) generateRoute(method string, parts []string, params map[int]string, index int, handler HandlerFunc) {
 	if index >= len(parts) {
+		r.params = params
 		r.handler = handler
 		return
 	}
@@ -236,11 +232,8 @@ func (r *route) generateRoute(method string, parts []string, params map[int]stri
 		sub = r.regexSubRoutes[k]
 		if sub == nil {
 			sub = &route{
-				method:         method,
-				pattern:        pattern,
 				namedSubRoutes: map[string]*route{},
 				regexSubRoutes: map[string]*route{},
-				isExplicit:     false,
 				regex:          reg,
 			}
 			sub.generateRoute(method, parts, params, index+1, handler)
@@ -250,11 +243,8 @@ func (r *route) generateRoute(method string, parts []string, params map[int]stri
 		sub = r.namedSubRoutes[k]
 		if sub == nil {
 			sub = &route{
-				method:         method,
-				pattern:        pattern,
 				namedSubRoutes: map[string]*route{},
 				regexSubRoutes: map[string]*route{},
-				isExplicit:     true,
 			}
 			sub.generateRoute(method, parts, params, index+1, handler)
 			r.namedSubRoutes[k] = sub
@@ -265,4 +255,16 @@ func (r *route) generateRoute(method string, parts []string, params map[int]stri
 
 func generateKey(method, pattern string) string {
 	return strings.Join([]string{method, pattern}, "||")
+}
+
+func (r *route) parseParams(c *Context) {
+	pattern := c.req.URL.Path
+	pattern = strings.TrimSuffix(strings.TrimPrefix(pattern, "/"), "/")
+	parts := strings.Split(pattern, "/")
+	log.Println("parts", parts)
+	log.Println(r.params)
+	for i, k := range r.params {
+		c.params[k] = parts[i]
+	}
+
 }

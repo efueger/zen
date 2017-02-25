@@ -16,3 +16,10 @@ func wrapHandler(h http.HandlerFunc) HandlerFunc {
 		h(c.rw, c.req)
 	}
 }
+
+func (h HandlerFunc) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	c := Context{}
+	c.req = req
+	c.rw = rw
+	h(&c)
+}

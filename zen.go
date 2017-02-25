@@ -14,12 +14,11 @@ const (
 type (
 	// Server struct
 	Server struct {
-		http.Server
-		contextPool     sync.Pool
 		route           *route
 		notFoundHandler HandlerFunc
 		panicHandler    PanicHandler
 		filters         []HandlerFunc
+		contextPool     sync.Pool
 	}
 )
 
@@ -30,7 +29,7 @@ func NewServer() *Server {
 
 	s := &Server{route: route, contextPool: sync.Pool{}, filters: []HandlerFunc{}}
 	s.contextPool.New = func() interface{} {
-		c := Context{}
+		c := Context{params: map[string]string{}}
 		return &c
 	}
 	return s
@@ -39,14 +38,11 @@ func NewServer() *Server {
 // Run server
 func (s *Server) Run(addr string) error {
 	log.Println("start zen on", addr)
-	s.Addr = addr
-	s.Handler = s
-	return s.ListenAndServe()
+
+	return http.ListenAndServe(addr, s)
 }
 
 // RunTLS Run server with tls
 func (s *Server) RunTLS(addr string, certFile string, keyFile string) error {
-	s.Addr = addr
-	s.Handler = s
-	return s.ListenAndServeTLS(certFile, keyFile)
+	return http.ListenAndServeTLS(addr, certFile, keyFile, s)
 }
