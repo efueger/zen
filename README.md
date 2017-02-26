@@ -88,7 +88,7 @@ func handler(c *zen.Context) {
 	}
 ```
 
-### Hanndle panic
+### Handle panic
 
 ```go
 	server := zen.NewServer()
@@ -100,7 +100,7 @@ func handler(c *zen.Context) {
 	}
 ```
 
-### Hanndle 404
+### Handle 404
 
 ```go
 	server := zen.NewServer()
