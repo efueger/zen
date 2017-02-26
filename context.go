@@ -8,7 +8,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"net/url"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -67,9 +66,9 @@ func (c *Context) parseInput() error {
 	return err1
 }
 
-// Form return request form
-func (c *Context) Form() url.Values {
-	return c.Req.Form
+// Form return request form value with given key
+func (c *Context) Form(key string) string {
+	return c.Req.FormValue(key)
 }
 
 // Param return url param with given key
@@ -77,16 +76,8 @@ func (c *Context) Param(key string) string {
 	return c.params[key]
 }
 
-// RequestHeader return request's header
-func (c *Context) RequestHeader() http.Header {
-	return c.Req.Header
-}
-
 // ParseValidateForm will parse request's form and map into a interface{} value
 func (c *Context) ParseValidateForm(input interface{}) error {
-	if err := c.Req.ParseForm(); err != nil {
-		return err
-	}
 	return c.parseValidateForm(input)
 }
 

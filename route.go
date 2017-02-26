@@ -116,7 +116,7 @@ func (s *Server) Static(pattern string, dir string) {
 
 // PProf serve golang's pprof tool
 func (s *Server) PProf(pattern string) {
-	s.Get(pattern, wrapH(pprof.Index))
+	s.Get(pattern, wrapF(pprof.Index))
 }
 
 // HandleNotFound set server's notFoundHandler

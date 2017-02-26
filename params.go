@@ -2,6 +2,7 @@ package zen
 
 import "strings"
 
+// parseParams parse url parameters
 func (r *route) parseParams(c *Context) {
 	pattern := c.Req.URL.Path
 	pattern = strings.TrimSuffix(strings.TrimPrefix(pattern, "/"), "/")

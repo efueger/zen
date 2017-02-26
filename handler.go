@@ -11,14 +11,9 @@ type (
 	PanicHandler func(*Context, interface{})
 )
 
+// wrapF wrap a http handlerfunc into HandlerFunc
 func wrapF(h http.HandlerFunc) HandlerFunc {
 	return func(c *Context) {
 		h(c.rw, c.Req)
-	}
-}
-
-func wrapH(h http.HandlerFunc) HandlerFunc {
-	return func(c *Context) {
-		h.ServeHTTP(c.rw, c.Req)
 	}
 }

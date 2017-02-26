@@ -64,14 +64,14 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	s.handleNotFound(c)
 }
 
-// Run server
+// Run server on addr
 func (s *Server) Run(addr string) error {
 	log.Println("start zen on", addr)
 
 	return http.ListenAndServe(addr, s)
 }
 
-// RunTLS Run server with tls
+// RunTLS Run server on addr with tls
 func (s *Server) RunTLS(addr string, certFile string, keyFile string) error {
 	return http.ListenAndServeTLS(addr, certFile, keyFile, s)
 }
