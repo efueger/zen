@@ -11,7 +11,7 @@ import "net/http"
 // Access-Control-Allow-Origin, etc.
 type responseWriter struct {
 	writer  http.ResponseWriter
-	started bool
+	written bool
 	status  int
 }
 
@@ -21,16 +21,16 @@ func (w *responseWriter) Header() http.Header {
 }
 
 // Write writes the data to the connection as part of an HTTP reply,
-// and sets `started` to true
+// and sets `written` to true
 func (w *responseWriter) Write(p []byte) (int, error) {
-	w.started = true
+	w.written = true
 	return w.writer.Write(p)
 }
 
 // WriteHeader sends an HTTP response header with status code,
-// and sets `started` to true
+// and sets `written` to true
 func (w *responseWriter) WriteHeader(code int) {
 	w.status = code
-	w.started = true
+	w.written = true
 	w.writer.WriteHeader(code)
 }

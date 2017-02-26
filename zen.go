@@ -49,7 +49,7 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		route.parseParams(c)
 		for _, f := range s.filters {
 			f(c)
-			if w.started {
+			if w.written {
 				return
 			}
 		}
