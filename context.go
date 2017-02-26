@@ -48,6 +48,15 @@ func (s *Server) getContext(rw http.ResponseWriter, req *http.Request) *Context 
 	return c
 }
 
+func (s *Server) putBackContext(c *Context) {
+	c.params = nil
+	c.parsed = false
+	c.Req = nil
+	c.rw = nil
+
+	s.contextPool.Put(c)
+}
+
 // ParseInput will parse request's form and
 func (c *Context) ParseInput() error {
 	if err := c.Req.ParseForm(); err != nil {
