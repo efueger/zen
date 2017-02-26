@@ -34,7 +34,7 @@ const (
 type (
 	// Context warps request and response writer
 	Context struct {
-		req    *http.Request
+		Req    *http.Request
 		rw     http.ResponseWriter
 		params map[string]string
 		parsed bool
@@ -43,27 +43,22 @@ type (
 
 func (s *Server) getContext(rw http.ResponseWriter, req *http.Request) *Context {
 	c := s.contextPool.Get().(*Context)
-	c.req = req
+	c.Req = req
 	c.rw = rw
 	return c
 }
 
 // ParseInput will parse request's form and
 func (c *Context) ParseInput() error {
-	if err := c.req.ParseForm(); err != nil {
+	if err := c.Req.ParseForm(); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Request return http request
-func (c *Context) Request() *http.Request {
-	return c.req
-}
-
 // Form return request form
 func (c *Context) Form() url.Values {
-	return c.req.Form
+	return c.Req.Form
 }
 
 // Params return request params
@@ -73,12 +68,12 @@ func (c *Context) Params() map[string]string {
 
 // RequestHeader return request's header
 func (c *Context) RequestHeader() http.Header {
-	return c.req.Header
+	return c.Req.Header
 }
 
 // ParseValidateForm will parse request's form and map into a interface{} value
 func (c *Context) ParseValidateForm(input interface{}) error {
-	if err := c.req.ParseForm(); err != nil {
+	if err := c.Req.ParseForm(); err != nil {
 		return err
 	}
 	return c.parseValidateForm(input)
@@ -94,7 +89,7 @@ func (c *Context) parseValidateForm(input interface{}) error {
 		validate := tag.Get(validTagName)
 		validateMsg := tag.Get(validMsgName)
 		field := inputValue.Field(i)
-		formValue := c.req.Form.Get(formName)
+		formValue := c.Req.Form.Get(formName)
 
 		// validate form with regex
 		if err := valid(formValue, validate, validateMsg); err != nil {

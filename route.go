@@ -109,15 +109,15 @@ func (s *Server) Static(pattern string, dir string) {
 	// that comes after the prefix
 	pattern = pattern + "(.+)"
 	s.Route(GET, pattern, func(c *Context) {
-		path := filepath.Clean(c.req.URL.Path)
+		path := filepath.Clean(c.Req.URL.Path)
 		path = filepath.Join(dir, path)
-		http.ServeFile(c.rw, c.req, path)
+		http.ServeFile(c.rw, c.Req, path)
 	})
 }
 
 // PProf serve golang's pprof tool
 func (s *Server) PProf(pattern string) {
-	s.Get(pattern, wrapHandler(pprof.Index))
+	s.Get(pattern, wrapH(pprof.Index))
 }
 
 // HandleNotFound set server's notFoundHandler
@@ -151,37 +151,7 @@ func (s *Server) handleNotFound(c *Context) {
 		return
 	}
 
-	http.NotFound(c.rw, c.req)
-}
-
-// Filter adds the middleware filter.
-func (s *Server) Filter(filter HandlerFunc) {
-	s.filters = append(s.filters, filter)
-}
-
-// Required by http.Handler interface. This method is invoked by the
-// http server and will handle all page routing
-func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	log.Println("zen serveHTTP", r.RequestURI, r.URL.Path)
-	w := &responseWriter{writer: rw}
-	c := s.getContext(w, r)
-
-	defer s.handlePanic(c)
-
-	route := s.routeMatch(r.Method, r.URL.Path)
-	if route != nil && route.handler != nil {
-		route.parseParams(c)
-		for _, f := range s.filters {
-			f(c)
-			if w.started {
-				return
-			}
-		}
-		route.handler(c)
-
-		return
-	}
-	s.handleNotFound(c)
+	http.NotFound(c.rw, c.Req)
 }
 
 func (s *Server) routeMatch(method, pattern string) *route {
@@ -255,16 +225,4 @@ func (r *route) generateRoute(method string, parts []string, params map[int]stri
 
 func generateKey(method, pattern string) string {
 	return strings.Join([]string{method, pattern}, "||")
-}
-
-func (r *route) parseParams(c *Context) {
-	pattern := c.req.URL.Path
-	pattern = strings.TrimSuffix(strings.TrimPrefix(pattern, "/"), "/")
-	parts := strings.Split(pattern, "/")
-	log.Println("parts", parts)
-	log.Println(r.params)
-	for i, k := range r.params {
-		c.params[k] = parts[i]
-	}
-
 }

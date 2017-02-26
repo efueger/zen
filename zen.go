@@ -35,6 +35,31 @@ func NewServer() *Server {
 	return s
 }
 
+// Required by http.Handler interface. This method is invoked by the
+// http server and will handle all page routing
+func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+	log.Println("zen serveHTTP", r.RequestURI, r.URL.Path)
+	w := &responseWriter{writer: rw}
+	c := s.getContext(w, r)
+	defer s.contextPool.Put(c)
+	defer s.handlePanic(c)
+
+	route := s.routeMatch(r.Method, r.URL.Path)
+	if route != nil && route.handler != nil {
+		route.parseParams(c)
+		for _, f := range s.filters {
+			f(c)
+			if w.started {
+				return
+			}
+		}
+		route.handler(c)
+
+		return
+	}
+	s.handleNotFound(c)
+}
+
 // Run server
 func (s *Server) Run(addr string) error {
 	log.Println("start zen on", addr)
