@@ -47,7 +47,7 @@ func (s *Server) Route(method string, pattern string, handler HandlerFunc) {
 			regexSubRoutes: map[string]*route{},
 			handler:        handler,
 		}
-		k := strings.Join([]string{method, pattern}, "||")
+		k := generateKey(method, pattern)
 		s.route.namedSubRoutes[k] = route
 		return
 	}
