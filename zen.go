@@ -39,9 +39,13 @@ func NewServer() *Server {
 // http server and will handle all page routing
 func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	log.Println("zen serveHTTP", r.RequestURI, r.URL.Path)
+
+	// warp response writer
 	w := &responseWriter{writer: rw}
 	c := s.getContext(w, r)
-	defer s.contextPool.Put(c)
+	// put context into pool
+	defer s.putBackContext(c)
+	// handle panic
 	defer s.handlePanic(c)
 
 	route := s.routeMatch(r.Method, r.URL.Path)
