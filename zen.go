@@ -38,11 +38,11 @@ func NewServer() *Server {
 // Required by http.Handler interface. This method is invoked by the
 // http server and will handle all page routing
 func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	log.Println("zen serveHTTP", r.RequestURI, r.URL.Path)
 
 	// warp response writer
 	w := &responseWriter{writer: rw}
 	c := s.getContext(w, r)
+	c.parseInput()
 	// put context into pool
 	defer s.putBackContext(c)
 	// handle panic

@@ -49,7 +49,7 @@ func (s *Server) getContext(rw http.ResponseWriter, req *http.Request) *Context 
 }
 
 func (s *Server) putBackContext(c *Context) {
-	c.params = nil
+	c.params = map[string]string{}
 	c.parsed = false
 	c.Req = nil
 	c.rw = nil
@@ -57,12 +57,14 @@ func (s *Server) putBackContext(c *Context) {
 	s.contextPool.Put(c)
 }
 
-// ParseInput will parse request's form and
-func (c *Context) ParseInput() error {
-	if err := c.Req.ParseForm(); err != nil {
-		return err
+// parseInput will parse request's form and
+func (c *Context) parseInput() error {
+	err1 := c.Req.ParseForm()
+	err2 := c.Req.ParseMultipartForm(32 << 10)
+	if err1 == nil {
+		return err2
 	}
-	return nil
+	return err1
 }
 
 // Form return request form
@@ -70,9 +72,9 @@ func (c *Context) Form() url.Values {
 	return c.Req.Form
 }
 
-// Params return request params
-func (c *Context) Params() map[string]string {
-	return c.params
+// Param return url param with given key
+func (c *Context) Param(key string) string {
+	return c.params[key]
 }
 
 // RequestHeader return request's header

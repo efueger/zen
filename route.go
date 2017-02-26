@@ -1,7 +1,6 @@
 package zen
 
 import (
-	"log"
 	"net/http"
 	"net/http/pprof"
 	"path/filepath"
@@ -137,7 +136,6 @@ func (s *Server) handlePanic(c *Context) {
 		if s.panicHandler != nil {
 			s.panicHandler(c, err)
 		} else {
-			log.Printf("%+v", err)
 			http.Error(c.rw, "internal server error", http.StatusInternalServerError)
 		}
 	}
