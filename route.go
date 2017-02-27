@@ -204,9 +204,10 @@ func (r *route) generateRoute(method string, parts []string, params map[int]stri
 				regexSubRoutes: map[string]*route{},
 				regex:          reg,
 			}
-			sub.generateRoute(method, parts, params, index+1, handler)
 			r.regexSubRoutes[k] = sub
 		}
+		sub.generateRoute(method, parts, params, index+1, handler)
+
 	} else {
 		sub = r.namedSubRoutes[k]
 		if sub == nil {
@@ -214,9 +215,9 @@ func (r *route) generateRoute(method string, parts []string, params map[int]stri
 				namedSubRoutes: map[string]*route{},
 				regexSubRoutes: map[string]*route{},
 			}
-			sub.generateRoute(method, parts, params, index+1, handler)
 			r.namedSubRoutes[k] = sub
 		}
+		sub.generateRoute(method, parts, params, index+1, handler)
 	}
 
 }

@@ -38,7 +38,6 @@ func NewServer() *Server {
 // Required by http.Handler interface. This method is invoked by the
 // http server and will handle all page routing
 func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-
 	// warp response writer
 	w := &responseWriter{writer: rw}
 	c := s.getContext(w, r)
@@ -58,9 +57,9 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			}
 		}
 		route.handler(c)
-
 		return
 	}
+
 	s.handleNotFound(c)
 }
 
@@ -73,5 +72,7 @@ func (s *Server) Run(addr string) error {
 
 // RunTLS Run server on addr with tls
 func (s *Server) RunTLS(addr string, certFile string, keyFile string) error {
+	log.Println("start zen with tls on", addr)
+
 	return http.ListenAndServeTLS(addr, certFile, keyFile, s)
 }
