@@ -32,8 +32,8 @@ const (
 type route struct {
 	regex          *regexp.Regexp
 	handler        HandlerFunc
+	children       []*route
 	namedSubRoutes map[string]*route
-	regexSubRoutes map[string]*route
 	params         map[int]string
 }
 
@@ -42,7 +42,6 @@ func (s *Server) methodRouteTree(method string) *route {
 	if !ok {
 		s.routeTree[method] = &route{
 			namedSubRoutes: map[string]*route{},
-			regexSubRoutes: map[string]*route{},
 		}
 		r = s.routeTree[method]
 	}
@@ -61,9 +60,7 @@ func (s *Server) Route(method string, pattern string, handler HandlerFunc) {
 	// add a named route
 	if strings.Index(pattern, ":") == -1 {
 		r.namedSubRoutes[pattern] = &route{
-			namedSubRoutes: map[string]*route{},
-			regexSubRoutes: map[string]*route{},
-			handler:        handler,
+			handler: handler,
 		}
 		return
 	}
@@ -193,13 +190,22 @@ func (r *route) subRouteMatch(parts []string, index int) *route {
 		return sub.subRouteMatch(parts, index+1)
 	}
 
-	for _, v := range r.regexSubRoutes {
+	for _, v := range r.children {
 		if v.regex.MatchString(pattern) {
 			return v.subRouteMatch(parts, index+1)
 		}
 	}
 	return nil
 
+}
+
+func (r *route) getSubRoute(pattern string) *route {
+	for _, route := range r.children {
+		if route.regex.MatchString(pattern) {
+			return route
+		}
+	}
+	return nil
 }
 
 func (r *route) generateRoute(parts []string, params map[int]string, index int, handler HandlerFunc) {
@@ -214,14 +220,13 @@ func (r *route) generateRoute(parts []string, params map[int]string, index int, 
 	var sub *route
 	if _, ok := params[index]; ok {
 		reg := regexp.MustCompile(pattern)
-		sub = r.regexSubRoutes[pattern]
+		sub = r.getSubRoute(pattern)
 		if sub == nil {
 			sub = &route{
 				namedSubRoutes: map[string]*route{},
-				regexSubRoutes: map[string]*route{},
 				regex:          reg,
 			}
-			r.regexSubRoutes[pattern] = sub
+			r.children = append(r.children, sub)
 		}
 		sub.generateRoute(parts, params, index+1, handler)
 
@@ -230,7 +235,6 @@ func (r *route) generateRoute(parts []string, params map[int]string, index int, 
 		if sub == nil {
 			sub = &route{
 				namedSubRoutes: map[string]*route{},
-				regexSubRoutes: map[string]*route{},
 			}
 			r.namedSubRoutes[pattern] = sub
 		}
