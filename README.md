@@ -10,7 +10,7 @@
 
 zen is a web framework written by go, you will love it if you preffer high performance and lightweight!!!
 
-⚠️ zen is under heavy development, so the api is not stable so far
+⚠️ zen is under heavy development, therefore the api is not stable so far
 
 ## Installation
 
