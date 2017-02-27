@@ -12,7 +12,6 @@ import "net/http"
 type responseWriter struct {
 	writer  http.ResponseWriter
 	written bool
-	status  int
 }
 
 // Header returns the header map that will be sent by WriteHeader.
@@ -30,7 +29,6 @@ func (w *responseWriter) Write(p []byte) (int, error) {
 // WriteHeader sends an HTTP response header with status code,
 // and sets `written` to true
 func (w *responseWriter) WriteHeader(code int) {
-	w.status = code
 	w.written = true
 	w.writer.WriteHeader(code)
 }

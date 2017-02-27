@@ -37,24 +37,40 @@ type route struct {
 	params         map[int]string
 }
 
+func (s *Server) methodRouteTree(method string) *route {
+	r, ok := s.routeTree[method]
+	if !ok {
+		s.routeTree[method] = &route{
+			namedSubRoutes: map[string]*route{},
+			regexSubRoutes: map[string]*route{},
+		}
+		r = s.routeTree[method]
+	}
+	return r
+}
+
 // Route set handler for given pattern and method
 func (s *Server) Route(method string, pattern string, handler HandlerFunc) {
+	// assert method and pattern is not empty
+	assert(len(method) > 0, "Method should not be empty")
+	assert(len(pattern) > 0, "Method should not be empty")
+
+	// get method route tree
+	r := s.methodRouteTree(method)
 
 	// add a named route
 	if strings.Index(pattern, ":") == -1 {
-		route := &route{
+		r.namedSubRoutes[pattern] = &route{
 			namedSubRoutes: map[string]*route{},
 			regexSubRoutes: map[string]*route{},
 			handler:        handler,
 		}
-		k := generateKey(method, pattern)
-		s.route.namedSubRoutes[k] = route
 		return
 	}
 
 	// create tree route
 	//split the url into sections
-	parts := strings.Split(strings.TrimSuffix(strings.TrimPrefix(pattern, "/"), "/"), "/")
+	parts := strings.Split(pattern, "/")
 
 	//find params that start with ":"
 	//replace with regular expressions
@@ -73,7 +89,7 @@ func (s *Server) Route(method string, pattern string, handler HandlerFunc) {
 		}
 	}
 
-	s.route.generateRoute(method, parts, params, 0, handler)
+	r.generateRoute(parts, params, 0, handler)
 }
 
 // Get adds a new Route for GET requests.
@@ -152,39 +168,41 @@ func (s *Server) handleNotFound(c *Context) {
 	http.NotFound(c.rw, c.Req)
 }
 
-func (s *Server) routeMatch(method, pattern string) *route {
-	k := generateKey(method, pattern)
-	if r, ok := s.route.namedSubRoutes[k]; ok {
-		return r
-	}
-	pattern = strings.TrimSuffix(strings.TrimPrefix(pattern, "/"), "/")
-
+func (s *Server) routeMatch(method, pattern string) (*route, []string) {
 	parts := strings.Split(pattern, "/")
-	return s.route.subRouteMatch(method, parts, 0)
+	r := s.routeTree[method]
+	if r == nil {
+		return nil, parts
+	}
+
+	if r, ok := r.namedSubRoutes[pattern]; ok {
+		return r, parts
+	}
+
+	return r.subRouteMatch(parts, 0), parts
 }
 
-func (r *route) subRouteMatch(method string, parts []string, index int) *route {
+func (r *route) subRouteMatch(parts []string, index int) *route {
 	if index >= len(parts) {
 		return r
 	}
 
 	pattern := parts[index]
-	k := generateKey(method, pattern)
 
-	if sub, ok := r.namedSubRoutes[k]; ok {
-		return sub.subRouteMatch(method, parts, index+1)
+	if sub, ok := r.namedSubRoutes[pattern]; ok {
+		return sub.subRouteMatch(parts, index+1)
 	}
 
-	for k, v := range r.regexSubRoutes {
-		if strings.HasPrefix(k, method) && v.regex.MatchString(pattern) {
-			return v.subRouteMatch(method, parts, index+1)
+	for _, v := range r.regexSubRoutes {
+		if v.regex.MatchString(pattern) {
+			return v.subRouteMatch(parts, index+1)
 		}
 	}
 	return nil
 
 }
 
-func (r *route) generateRoute(method string, parts []string, params map[int]string, index int, handler HandlerFunc) {
+func (r *route) generateRoute(parts []string, params map[int]string, index int, handler HandlerFunc) {
 	if index >= len(parts) {
 		r.params = params
 		r.handler = handler
@@ -192,36 +210,31 @@ func (r *route) generateRoute(method string, parts []string, params map[int]stri
 	}
 
 	pattern := parts[index]
-	k := generateKey(method, pattern)
 
 	var sub *route
 	if _, ok := params[index]; ok {
 		reg := regexp.MustCompile(pattern)
-		sub = r.regexSubRoutes[k]
+		sub = r.regexSubRoutes[pattern]
 		if sub == nil {
 			sub = &route{
 				namedSubRoutes: map[string]*route{},
 				regexSubRoutes: map[string]*route{},
 				regex:          reg,
 			}
-			r.regexSubRoutes[k] = sub
+			r.regexSubRoutes[pattern] = sub
 		}
-		sub.generateRoute(method, parts, params, index+1, handler)
+		sub.generateRoute(parts, params, index+1, handler)
 
 	} else {
-		sub = r.namedSubRoutes[k]
+		sub = r.namedSubRoutes[pattern]
 		if sub == nil {
 			sub = &route{
 				namedSubRoutes: map[string]*route{},
 				regexSubRoutes: map[string]*route{},
 			}
-			r.namedSubRoutes[k] = sub
+			r.namedSubRoutes[pattern] = sub
 		}
-		sub.generateRoute(method, parts, params, index+1, handler)
+		sub.generateRoute(parts, params, index+1, handler)
 	}
 
-}
-
-func generateKey(method, pattern string) string {
-	return strings.Join([]string{method, pattern}, "||")
 }

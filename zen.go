@@ -14,7 +14,7 @@ const (
 type (
 	// Server struct
 	Server struct {
-		route           *route
+		routeTree       map[string]*route
 		notFoundHandler HandlerFunc
 		panicHandler    PanicHandler
 		filters         []HandlerFunc
@@ -25,11 +25,10 @@ type (
 // NewServer will create a Server instance and response with a pointer which point to it
 func NewServer() *Server {
 	// create root router
-	route := &route{namedSubRoutes: map[string]*route{}, regexSubRoutes: map[string]*route{}}
 
-	s := &Server{route: route, contextPool: sync.Pool{}, filters: []HandlerFunc{}}
+	s := &Server{routeTree: map[string]*route{}, contextPool: sync.Pool{}, filters: []HandlerFunc{}}
 	s.contextPool.New = func() interface{} {
-		c := Context{params: map[string]string{}}
+		c := Context{params: map[string]string{}, rw: &responseWriter{}}
 		return &c
 	}
 	return s
@@ -39,20 +38,20 @@ func NewServer() *Server {
 // http server and will handle all page routing
 func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	// warp response writer
-	w := &responseWriter{writer: rw}
-	c := s.getContext(w, r)
-	c.parseInput()
+
+	c := s.getContext(rw, r)
+	// c.parseInput()
 	// put context into pool
 	defer s.putBackContext(c)
 	// handle panic
-	defer s.handlePanic(c)
+	// defer s.handlePanic(c)
 
-	route := s.routeMatch(r.Method, r.URL.Path)
+	route, parts := s.routeMatch(r.Method, r.RequestURI)
 	if route != nil && route.handler != nil {
-		route.parseParams(c)
+		route.parseParams(c, parts)
 		for _, f := range s.filters {
 			f(c)
-			if w.written {
+			if c.rw.written {
 				return
 			}
 		}

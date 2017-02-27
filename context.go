@@ -34,7 +34,7 @@ type (
 	// Context warps request and response writer
 	Context struct {
 		Req    *http.Request
-		rw     http.ResponseWriter
+		rw     *responseWriter
 		params map[string]string
 		parsed bool
 	}
@@ -43,15 +43,17 @@ type (
 func (s *Server) getContext(rw http.ResponseWriter, req *http.Request) *Context {
 	c := s.contextPool.Get().(*Context)
 	c.Req = req
-	c.rw = rw
+	c.rw.writer = rw
 	return c
 }
 
 func (s *Server) putBackContext(c *Context) {
-	c.params = map[string]string{}
+	for k := range c.params {
+		delete(c.params, k)
+	}
 	c.parsed = false
 	c.Req = nil
-	c.rw = nil
+	c.rw.writer = nil
 
 	s.contextPool.Put(c)
 }
@@ -60,6 +62,7 @@ func (s *Server) putBackContext(c *Context) {
 func (c *Context) parseInput() error {
 	err1 := c.Req.ParseForm()
 	err2 := c.Req.ParseMultipartForm(32 << 10)
+	c.parsed = true
 	if err1 == nil {
 		return err2
 	}
@@ -68,6 +71,9 @@ func (c *Context) parseInput() error {
 
 // Form return request form value with given key
 func (c *Context) Form(key string) string {
+	if !c.parsed {
+		c.parseInput()
+	}
 	return c.Req.FormValue(key)
 }
 
