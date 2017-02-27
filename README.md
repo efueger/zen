@@ -115,6 +115,7 @@ func handler(c *zen.Context) {
 
 ## Todo
 
+- [ ] Implement radix tree route
 - [ ] Detailed Document
 - [ ] Handle redirect
 - [ ] Unit test
