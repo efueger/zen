@@ -65,7 +65,7 @@ func handler(c *zen.Context) {
 	type Inputs struct {
 		Name string `form:"name" json:"name"`
 		Age  int    `form:"age" json:"age"`
-		Mail string `form:"mail" valid:"[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}" msg:"邮件格式错误" json:"mail"`
+		Mail string `form:"mail" valid:"[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}" msg:"Illegal email" json:"mail"`
 	}
 	var input Inputs
 
