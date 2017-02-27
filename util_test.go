@@ -22,7 +22,7 @@ func Test_assert(t *testing.T) {
 		{
 			"false",
 			args{
-				true,
+				false,
 				"panic",
 			},
 		},
