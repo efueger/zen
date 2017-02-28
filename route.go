@@ -50,9 +50,9 @@ func (s *Server) methodRouteTree(method string) *route {
 
 // Route set handler for given pattern and method
 func (s *Server) Route(method string, pattern string, handler HandlerFunc) {
-	// assert method and pattern is not empty
+	// assert method and pattern is not empty, else panic
 	assert(len(method) > 0, "Method should not be empty")
-	assert(len(pattern) > 0, "Method should not be empty")
+	assert(len(pattern) > 0 && pattern[0] == '/', "Pattern should start with /")
 
 	// get method route tree
 	r := s.methodRouteTree(method)
