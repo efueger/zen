@@ -56,14 +56,14 @@ func (s *Server) handleHTTPRequest(c *Context) {
 		if t.method == httpMethod {
 			handlers, params := t.node.get(path, c.params)
 			c.params = params
-			if handlers != nil {
-				for _, h := range handlers {
-					h(c)
-					if c.rw.written {
-						return
-					}
+
+			for _, h := range handlers {
+				h(c)
+				if c.rw.written {
+					return
 				}
 			}
+
 		}
 	}
 
