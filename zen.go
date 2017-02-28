@@ -13,7 +13,7 @@ const (
 type (
 	// Server struct
 	Server struct {
-		routeTree       map[string]*route
+		routeTree       []*methodNode
 		notFoundHandler HandlerFunc
 		panicHandler    PanicHandler
 		filters         []HandlerFunc
@@ -24,9 +24,9 @@ type (
 // New will create a Server instance and return a pointer which point to it
 func New() *Server {
 
-	s := &Server{routeTree: map[string]*route{}, contextPool: sync.Pool{}, filters: []HandlerFunc{}}
+	s := &Server{contextPool: sync.Pool{}, filters: []HandlerFunc{}}
 	s.contextPool.New = func() interface{} {
-		c := Context{params: map[string]string{}, rw: &responseWriter{}}
+		c := Context{rw: &responseWriter{}}
 		return &c
 	}
 	return s
@@ -42,17 +42,23 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	// handle panic
 	defer s.handlePanic(c)
 
-	route, parts := s.routeMatch(r.Method, r.RequestURI)
-	if route != nil && route.handler != nil {
-		route.parseParams(c, parts)
-		for _, f := range s.filters {
-			f(c)
-			if c.rw.written {
-				return
+	httpMethod := r.Method
+	path := r.URL.Path
+
+	for i := 0; i < len(s.routeTree); i++ {
+		t := s.routeTree[i]
+		if t.method == httpMethod {
+			handlers, params := t.node.get(path, c.params)
+			if handlers != nil {
+				c.params = params
+				for _, h := range handlers {
+					h(c)
+					if c.rw.written {
+						return
+					}
+				}
 			}
 		}
-		route.handler(c)
-		return
 	}
 
 	s.handleNotFound(c)
