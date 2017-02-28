@@ -1,7 +1,6 @@
 package zen
 
 import (
-	"log"
 	"net/http"
 	"sync"
 )
@@ -22,9 +21,8 @@ type (
 	}
 )
 
-// NewServer will create a Server instance and response with a pointer which point to it
-func NewServer() *Server {
-	// create root router
+// New will create a Server instance and return a pointer which point to it
+func New() *Server {
 
 	s := &Server{routeTree: map[string]*route{}, contextPool: sync.Pool{}, filters: []HandlerFunc{}}
 	s.contextPool.New = func() interface{} {
@@ -37,11 +35,9 @@ func NewServer() *Server {
 // Required by http.Handler interface. This method is invoked by the
 // http server and will handle all page routing
 func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	// warp response writer
-
+	// get context instance from pool
 	c := s.getContext(rw, r)
-	// c.parseInput()
-	// put context into pool
+	// put context back into pool
 	defer s.putBackContext(c)
 	// handle panic
 	defer s.handlePanic(c)
@@ -64,14 +60,10 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 // Run server on addr
 func (s *Server) Run(addr string) error {
-	log.Println("start zen on", addr)
-
 	return http.ListenAndServe(addr, s)
 }
 
 // RunTLS Run server on addr with tls
 func (s *Server) RunTLS(addr string, certFile string, keyFile string) error {
-	log.Println("start zen with tls on", addr)
-
 	return http.ListenAndServeTLS(addr, certFile, keyFile, s)
 }
