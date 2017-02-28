@@ -128,7 +128,6 @@ func handler(c *zen.Context) {
 - [ ] Detailed Document
 - [ ] Handle redirect
 - [ ] Unit test
-- [ ] More context support
 - [ ] Grace restart base on go 1.8
 
 ## License
