@@ -37,20 +37,26 @@ func New() *Server {
 func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	// get context instance from pool
 	c := s.getContext(rw, r)
+
+	s.handleHTTPRequest(c)
+
 	// put context back into pool
-	defer s.putBackContext(c)
+	s.putBackContext(c)
+}
+
+func (s *Server) handleHTTPRequest(c *Context) {
 	// handle panic
 	defer s.handlePanic(c)
 
-	httpMethod := r.Method
-	path := r.URL.Path
+	httpMethod := c.Req.Method
+	path := c.Req.URL.Path
 
 	for i := 0; i < len(s.routeTree); i++ {
 		t := s.routeTree[i]
 		if t.method == httpMethod {
 			handlers, params := t.node.get(path, c.params)
+			c.params = params
 			if handlers != nil {
-				c.params = params
 				for _, h := range handlers {
 					h(c)
 					if c.rw.written {
