@@ -130,7 +130,6 @@ func handler(c *zen.Context) {
 - [ ] Unit test
 - [ ] More context support
 - [ ] Grace restart base on go 1.8
-- [ ] fasthttp instead of net/http
 
 ## License
 
