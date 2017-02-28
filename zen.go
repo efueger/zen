@@ -57,6 +57,13 @@ func (s *Server) handleHTTPRequest(c *Context) {
 			handlers, params := t.node.get(path, c.params)
 			c.params = params
 
+			for _, h := range s.filters {
+				h(c)
+				if c.rw.written {
+					return
+				}
+			}
+
 			for _, h := range handlers {
 				h(c)
 				if c.rw.written {
