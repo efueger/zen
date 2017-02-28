@@ -8,7 +8,6 @@ import (
 
 func TestServer_getContext(t *testing.T) {
 	type fields struct {
-		routeTree       map[string]*route
 		notFoundHandler HandlerFunc
 		panicHandler    PanicHandler
 		filters         []HandlerFunc
@@ -29,7 +28,7 @@ func TestServer_getContext(t *testing.T) {
 				contextPool: &sync.Pool{
 					New: func() interface{} {
 						c := Context{
-							params: map[string]string{},
+							params: Params{},
 							rw:     &responseWriter{},
 						}
 						return &c
@@ -45,7 +44,6 @@ func TestServer_getContext(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &Server{
-				routeTree:       tt.fields.routeTree,
 				notFoundHandler: tt.fields.notFoundHandler,
 				panicHandler:    tt.fields.panicHandler,
 				filters:         tt.fields.filters,
@@ -66,7 +64,7 @@ func BenchmarkGetContext(b *testing.B) {
 		contextPool: sync.Pool{
 			New: func() interface{} {
 				c := Context{
-					params: map[string]string{},
+					params: Params{},
 					rw:     &responseWriter{},
 				}
 				return &c
