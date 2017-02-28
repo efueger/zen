@@ -44,7 +44,7 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	// put context into pool
 	defer s.putBackContext(c)
 	// handle panic
-	// defer s.handlePanic(c)
+	defer s.handlePanic(c)
 
 	route, parts := s.routeMatch(r.Method, r.RequestURI)
 	if route != nil && route.handler != nil {
