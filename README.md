@@ -125,10 +125,11 @@ func handler(c *zen.Context) {
 
 ## Todo
 
-- [ ] Detailed Document
+- [ ] More elegant filter implement
+- [ ] Graceful restart based on go 1.8
 - [ ] Handle redirect
-- [ ] Unit test
-- [ ] Grace restart base on go 1.8
+- [ ] Increase test coverage
+- [ ] Documents
 
 ## License
 
