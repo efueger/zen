@@ -24,7 +24,7 @@ go get github.com/philchia/zen
 
 ```go
 func main() {
-	server := zen.NewServer()
+	server := zen.New()
 
 	if err := server.Run(":8080"); err != nil {
 		log.Println(err)
@@ -35,7 +35,7 @@ func main() {
 ### Using GET, POST, PUT, PATCH, DELETE
 
 ```go
-	server := zen.NewServer()
+	server := zen.New()
 	server.Get("/test",handler)
 	server.Post("/test", handler)
 	server.Put("/test",handler)
@@ -49,7 +49,7 @@ func main() {
 ### Parameters in path
 
 ```go
-	server := zen.NewServer()
+	server := zen.New()
 	server.Get("/user/:uid",func (c *Context) {
 		c.JSON(map[string]string{"uid": c.Param(":uid")})
 	})
@@ -81,7 +81,7 @@ func handler(c *zen.Context) {
 ### Use middleware
 
 ```go
-	server := zen.NewServer()
+	server := zen.New()
 	server.Filter(filter)
 	if err := server.Run(":8080"); err != nil {
 	log.Println(err)
@@ -91,7 +91,7 @@ func handler(c *zen.Context) {
 ### Handle panic
 
 ```go
-	server := zen.NewServer()
+	server := zen.New()
 	server.HandlePanic(func(c *zen.Context, err interface{}) {
 		c.RawStr(fmt.Sprint(err))
 	})
@@ -103,7 +103,7 @@ func handler(c *zen.Context) {
 ### Handle 404
 
 ```go
-	server := zen.NewServer()
+	server := zen.New()
 	server.HandleNotFound(func(c *zen.Context) {
 		c.WriteStatus(http.StatusNotFound)
 		c.RawStr("page not found")
