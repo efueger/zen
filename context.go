@@ -1,7 +1,6 @@
 package zen
 
 import (
-	"bytes"
 	"encoding/asn1"
 	"encoding/json"
 	"encoding/xml"
@@ -11,7 +10,6 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
-	"strings"
 )
 
 const (
@@ -35,7 +33,7 @@ type (
 	Context struct {
 		Req    *http.Request
 		rw     *responseWriter
-		params map[string]string
+		params Params
 		parsed bool
 	}
 )
@@ -48,9 +46,7 @@ func (s *Server) getContext(rw http.ResponseWriter, req *http.Request) *Context 
 }
 
 func (s *Server) putBackContext(c *Context) {
-	for k := range c.params {
-		delete(c.params, k)
-	}
+	c.params = c.params[0:0]
 	c.parsed = false
 	c.Req = nil
 	c.rw.writer = nil
@@ -79,7 +75,12 @@ func (c *Context) Form(key string) string {
 
 // Param return url param with given key
 func (c *Context) Param(key string) string {
-	return c.params[key]
+	for _, p := range c.params {
+		if p.key == key {
+			return p.value
+		}
+	}
+	return ""
 }
 
 // ParseValidateForm will parse request's form and map into a interface{} value
@@ -219,12 +220,7 @@ func (c *Context) WriteHeader(k, v string) {
 	c.rw.Header().Add(k, v)
 }
 
-// Raw write raw bytes
-func (c *Context) Raw(b []byte) {
-	io.Copy(c.rw, bytes.NewReader(b))
-}
-
 // RawStr write raw string
 func (c *Context) RawStr(s string) {
-	io.Copy(c.rw, strings.NewReader(s))
+	io.WriteString(c.rw, s)
 }
