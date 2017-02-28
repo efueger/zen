@@ -88,6 +88,22 @@ func (c *Context) ParseValidateForm(input interface{}) error {
 	return c.parseValidateForm(input)
 }
 
+// BindJSON will parse request's json body and map into a interface{} value
+func (c *Context) BindJSON(input interface{}) error {
+	if err := json.NewDecoder(c.Req.Body).Decode(input); err != nil {
+		return err
+	}
+	return nil
+}
+
+// BindXML will parse request's xml body and map into a interface{} value
+func (c *Context) BindXML(input interface{}) error {
+	if err := xml.NewDecoder(c.Req.Body).Decode(input); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (c *Context) parseValidateForm(input interface{}) error {
 	inputValue := reflect.ValueOf(input).Elem()
 	inputType := inputValue.Type()
@@ -100,12 +116,12 @@ func (c *Context) parseValidateForm(input interface{}) error {
 		field := inputValue.Field(i)
 		formValue := c.Req.Form.Get(formName)
 
-		// validate form with regex
-		if err := valid(formValue, validate, validateMsg); err != nil {
-			return err
-		}
 		// scan form string value into field
 		if err := scan(field, formValue); err != nil {
+			return err
+		}
+		// validate form with regex
+		if err := valid(formValue, validate, validateMsg); err != nil {
 			return err
 		}
 
@@ -223,4 +239,15 @@ func (c *Context) WriteHeader(k, v string) {
 // RawStr write raw string
 func (c *Context) RawStr(s string) {
 	io.WriteString(c.rw, s)
+}
+
+// File serve file
+func (c *Context) File(filepath string) {
+	http.ServeFile(c.rw, c.Req, filepath)
+}
+
+// Data writes some data into the body stream and updates the HTTP code.
+func (c *Context) Data(cType string, data []byte) {
+	c.WriteHeader(contentType, cType)
+	c.rw.Write(data)
 }
