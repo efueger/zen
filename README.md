@@ -11,6 +11,10 @@
 [![Issue Count](https://codeclimate.com/repos/5949803a355ade026900015e/badges/issue_count.svg)](https://codeclimate.com/repos/5949803a355ade026900015e)
 [![Issue Count](https://codeclimate.com/repos/5949803a355ade026900015e/badges/bcc17c60ae31e62f0420/issue_count.svg)](https://codeclimate.com/repos/5949803a355ade026900015e)
 
+<a href="https://codeclimate.com/repos/5949803a355ade026900015e/coverage"><img src="https://codeclimate.com/repos/5949803a355ade026900015e/badges/bcc17c60ae31e62f0420/coverage.svg" /></a>
+
+[![Test Coverage](https://codeclimate.com/repos/5949803a355ade026900015e/badges/coverage.svg)](https://codeclimate.com/repos/5949803a355ade026900015e/coverage) 
+
 zen is a web framework written by go, you will love it if you preffer high performance and lightweight!!!
 
 ⚠️ zen is under heavy development, therefore the api is not stable so far
