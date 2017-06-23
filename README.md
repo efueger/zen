@@ -7,6 +7,7 @@
 [![codebeat badge](https://codebeat.co/badges/fdac6135-0381-45f4-8972-4234f485e6c5)](https://codebeat.co/projects/github-com-philchia-zen-master)
 [![GoDoc](https://godoc.org/github.com/philchia/zen?status.svg)](https://godoc.org/github.com/philchia/zen)
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg)](https://opensource.org/licenses/MIT)
+[![Code Climate](https://codeclimate.com/repos/5949803a355ade026900015e/badges/bcc17c60ae31e62f0420/gpa.svg)](https://codeclimate.com/repos/5949803a355ade026900015e/feed)
 
 zen is a web framework written by go, you will love it if you preffer high performance and lightweight!!!
 
